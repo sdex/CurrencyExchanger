@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
@@ -37,6 +38,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,9 +57,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.sdex.currencyexchanger.R
-import dev.sdex.currencyexchanger.domain.model.Balance
-import dev.sdex.currencyexchanger.domain.model.ExchangeRate
 import dev.sdex.currencyexchanger.ui.theme.CurrencyExchangerTheme
+import dev.sdex.currencyexchanger.ui.theme.Green
+import dev.sdex.currencyexchanger.ui.theme.Red
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.KoinContext
 
@@ -75,9 +79,7 @@ class MainActivity : ComponentActivity() {
                             .safeDrawingPadding(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        val viewModel = koinViewModel<MainViewModel>()
-                        val state by viewModel.uiState.collectAsStateWithLifecycle()
-                        MainContent(state = state, onEvent = viewModel::onEvent)
+                        MainContent()
                     }
                 }
             }
@@ -91,7 +93,7 @@ fun MainContentPreview() {
     CurrencyExchangerTheme(
         darkTheme = false,
     ) {
-        MainContent(
+        /*MainContent(
             state = ExchangeCurrencyState(
                 balance = listOf(
                     Balance(currency = "EUR", amount = 1000.0),
@@ -101,18 +103,18 @@ fun MainContentPreview() {
                     ExchangeRate(currency = "EUR", rate = 1.0),
                     ExchangeRate(currency = "USD", rate = 1.1),
                 ),
+                message = "Test message",
             ),
             onEvent = {},
-        )
+        )*/
     }
 }
 
 @Composable
 fun MainContent(
-    state: ExchangeCurrencyState,
-    onEvent: (UIEvent) -> Unit,
-    modifier: Modifier = Modifier,
+    viewModel: MainViewModel = koinViewModel(),
 ) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     var sellCurrency by rememberSaveable(state.availableCurrencies) {
         mutableStateOf(state.availableCurrencies.firstOrNull() ?: "")
     }
@@ -120,13 +122,23 @@ fun MainContent(
     var receiveCurrency by rememberSaveable(state.allCurrencies) {
         mutableStateOf(state.allCurrencies.firstOrNull() ?: "")
     }
+    val onEvent = viewModel::onEvent
+    LaunchedEffect(Unit) {
+        viewModel.actions.onEach {
+            when (it) {
+                is Action.ClearInputField -> {
+                    sellAmount = ""
+                }
+            }
+        }.launchIn(this)
+    }
     Column(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier) {
             Column(
-                modifier = modifier
+                modifier = Modifier
                     .background(MaterialTheme.colorScheme.primaryContainer)
                     .fillMaxWidth()
                     .height(60.dp),
@@ -158,7 +170,7 @@ fun MainContent(
                 ) {
                     items(state.balance) { balance ->
                         Text(
-                            text = "${balance.amount} ${balance.currency}",
+                            text = "${formatDecimal(balance.amount)} ${balance.currency}",
                         )
                     }
                 }
@@ -176,7 +188,7 @@ fun MainContent(
                     Box(
                         modifier = Modifier
                             .size(42.dp)
-                            .background(Color(0xfff05252), CircleShape),
+                            .background(Red, CircleShape),
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.arrow_upward),
@@ -195,7 +207,14 @@ fun MainContent(
                         modifier = Modifier.width(110.dp),
                         value = sellAmount,
                         onValueChange = {
-                            sellAmount = it
+                            sellAmount = if (it.isNotEmpty()) {
+                                when (it.toDoubleOrNull()) {
+                                    null -> sellAmount
+                                    else -> it
+                                }
+                            } else {
+                                ""
+                            }
                             onEvent(
                                 UIEvent.GetExchangeRate(
                                     sellCurrency,
@@ -240,7 +259,7 @@ fun MainContent(
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Divider(modifier.padding(start = 52.dp))
+                Divider(Modifier.padding(start = 52.dp))
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -249,7 +268,7 @@ fun MainContent(
                     Box(
                         modifier = Modifier
                             .size(42.dp)
-                            .background(Color(0xff0e9f6e), CircleShape),
+                            .background(Green, CircleShape),
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.arrow_downward),
@@ -266,7 +285,7 @@ fun MainContent(
                     )
                     Text(
                         text = "+${state.receiveAmount}",
-                        color = Color(0xff0e9f6e),
+                        color = Green,
                         textAlign = TextAlign.End,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -284,6 +303,14 @@ fun MainContent(
                                 )
                             )
                         }
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                state.message?.let {
+                    Text(
+                        text = it,
+                        color = Red,
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
@@ -304,6 +331,40 @@ fun MainContent(
                 color = Color.White,
             )
         }
+    }
+    if (state.transactionResult != null) {
+        val result = state.transactionResult!!
+        AlertDialog(
+            onDismissRequest = {
+                onEvent(UIEvent.CloseResultDialog)
+            },
+            title = {
+                Text(text = stringResource(R.string.currency_converted))
+            },
+            text = {
+                Text(
+                    text = stringResource(
+                        R.string.you_have_converted_to_commission_fee,
+                        formatDecimal(result.transaction.amount),
+                        result.change.sellCurrency,
+                        formatDecimal(
+                            result.change.buyBalanceChange
+                        ),
+                        result.change.buyCurrency,
+                        formatDecimal(result.transactionFee),
+                        result.change.sellCurrency
+                    )
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onEvent(UIEvent.CloseResultDialog)
+                    }) {
+                    Text(stringResource(R.string.done))
+                }
+            },
+        )
     }
 }
 

@@ -1,5 +1,6 @@
 package dev.sdex.currencyexchanger.data.source
 
+import dev.sdex.currencyexchanger.data.source.model.ExchangeRateResponse
 import retrofit2.http.GET
 
 interface CurrencyExchangeApiService {

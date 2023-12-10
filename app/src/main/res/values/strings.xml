@@ -7,4 +7,7 @@
     <string name="sell">Sell</string>
     <string name="receive">Receive</string>
     <string name="submit">Submit</string>
+    <string name="currency_converted">Currency converted</string>
+    <string name="done">Done</string>
+    <string name="you_have_converted_to_commission_fee">You have converted %1$s %2$s to %3$s %4$s. Commission Fee - %5$s %6$s.</string>
 </resources>

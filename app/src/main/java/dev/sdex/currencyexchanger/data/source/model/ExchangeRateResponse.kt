@@ -1,7 +1,8 @@
-package dev.sdex.currencyexchanger.data.source
+package dev.sdex.currencyexchanger.data.source.model
 
 import com.google.gson.annotations.SerializedName
 import dev.sdex.currencyexchanger.domain.model.ExchangeRate
+import java.math.BigDecimal
 
 data class ExchangeRateResponse(
     @SerializedName("base")
@@ -16,7 +17,7 @@ data class ExchangeRateResponse(
         return rates?.map {
             ExchangeRate(
                 currency = it.key,
-                rate = it.value,
+                rate = BigDecimal(it.value),
             )
         } ?: emptyList()
     }
