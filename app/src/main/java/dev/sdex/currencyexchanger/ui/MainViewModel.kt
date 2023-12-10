@@ -93,113 +93,125 @@ class MainViewModel(
     fun onEvent(uiEvent: UIEvent) {
         when (uiEvent) {
             is UIEvent.Exchange -> {
-                val buyCurrency = uiEvent.buyCurrency
-                val sellCurrency = uiEvent.sellCurrency
-                Timber.d(
-                    "Exchange: " +
-                            "sellCurrency: $sellCurrency, " +
-                            "sellAmount: ${uiEvent.sellAmount}, " +
-                            "buyCurrency: $buyCurrency"
-                )
-                if (uiEvent.sellAmount.toDoubleOrNull() == null ||
-                    uiState.value.exchangeRates.isEmpty() ||
-                    sellCurrency == buyCurrency
-                ) {
-                    return
-                }
-                val sellAmount = BigDecimal(uiEvent.sellAmount)
-                if (sellAmount == BigDecimal.ZERO) {
-                    return
-                }
-
-                if (!hasEnoughFunds(sellCurrency, sellAmount)) {
-                    _uiState.update {
-                        it.copy(
-                            message = "Not enough funds on balance",
-                        )
-                    }
-                    return
-                }
-
-                val transactionResult = exchangeUseCase(
-                    uiState.value.exchangeRates,
-                    uiState.value.balance,
-                    ExchangeTransaction(
-                        sellCurrency = sellCurrency,
-                        buyCurrency = buyCurrency,
-                        amount = sellAmount,
-                    )
-                )
-                if (transactionResult.isProcessed) {
-                    _uiState.update {
-                        val newBalance = getNewBalance(
-                            it.balance,
-                            transactionResult,
-                        )
-                        it.copy(
-                            balance = newBalance,
-                            availableCurrencies = newBalance.map { it.currency },
-                            message = null,
-                            receiveAmount = "0.00",
-                            transactionResult = transactionResult,
-                        )
-                    }
-                    _actions.tryEmit(Action.ClearInputField)
-                } else {
-                    _uiState.update {
-                        it.copy(
-                            message = "Not enough funds on balance to pay " +
-                                    "${transactionResult.transactionFee} " +
-                                    "${transactionResult.transaction.sellCurrency} fee",
-                        )
-                    }
-                }
+                processExchange(uiEvent)
             }
 
             is UIEvent.GetExchangeRate -> {
-                val sellCurrency = uiEvent.sellCurrency
-                val buyCurrency = uiEvent.buyCurrency
-                if (sellCurrency.isEmpty() ||
-                    buyCurrency.isEmpty() ||
-                    uiState.value.exchangeRates.isEmpty()
-                ) {
-                    return
-                }
-                if (uiEvent.sellAmount.isEmpty()) {
-                    _uiState.update {
-                        it.copy(
-                            receiveAmount = "0.00",
-                            message = null,
-                        )
-                    }
-                    return
-                }
-                Timber.d(
-                    "GetExchangeRate: " +
-                            "sellCurrency: $sellCurrency, " +
-                            "sellAmount: ${uiEvent.sellAmount}, " +
-                            "buyCurrency: $buyCurrency"
-                )
-                val sellAmount = BigDecimal(uiEvent.sellAmount)
-                val rate = getExchangeRateUseCase(
-                    exchangeRates = uiState.value.exchangeRates,
-                    sellCurrency = sellCurrency,
-                    buyCurrency = buyCurrency,
-                )
-                _uiState.update {
-                    it.copy(
-                        receiveAmount = formatDecimal(sellAmount * rate),
-                        message = null,
-                    )
-                }
+                getExchangeRate(uiEvent)
             }
 
             UIEvent.CloseResultDialog -> {
-                _uiState.update {
-                    it.copy(
-                        transactionResult = null,
-                    )
-                }
+                closeResultDialog()
+            }
+        }
+    }
+
+    private fun closeResultDialog() {
+        _uiState.update {
+            it.copy(
+                transactionResult = null,
+            )
+        }
+    }
+
+    private fun getExchangeRate(uiEvent: UIEvent.GetExchangeRate) {
+        val sellCurrency = uiEvent.sellCurrency
+        val buyCurrency = uiEvent.buyCurrency
+        if (sellCurrency.isEmpty() ||
+            buyCurrency.isEmpty() ||
+            uiState.value.exchangeRates.isEmpty()
+        ) {
+            return
+        }
+        if (uiEvent.sellAmount.isEmpty()) {
+            _uiState.update {
+                it.copy(
+                    receiveAmount = "0.00",
+                    message = null,
+                )
+            }
+            return
+        }
+        Timber.d(
+            "GetExchangeRate: " +
+                    "sellCurrency: $sellCurrency, " +
+                    "sellAmount: ${uiEvent.sellAmount}, " +
+                    "buyCurrency: $buyCurrency"
+        )
+        val sellAmount = BigDecimal(uiEvent.sellAmount)
+        val rate = getExchangeRateUseCase(
+            exchangeRates = uiState.value.exchangeRates,
+            sellCurrency = sellCurrency,
+            buyCurrency = buyCurrency,
+        )
+        _uiState.update {
+            it.copy(
+                receiveAmount = formatDecimal(sellAmount * rate),
+                message = null,
+            )
+        }
+    }
+
+    private fun processExchange(uiEvent: UIEvent.Exchange) {
+        val buyCurrency = uiEvent.buyCurrency
+        val sellCurrency = uiEvent.sellCurrency
+        Timber.d(
+            "Exchange: " +
+                    "sellCurrency: $sellCurrency, " +
+                    "sellAmount: ${uiEvent.sellAmount}, " +
+                    "buyCurrency: $buyCurrency"
+        )
+        if (uiEvent.sellAmount.toDoubleOrNull() == null ||
+            uiState.value.exchangeRates.isEmpty() ||
+            sellCurrency == buyCurrency
+        ) {
+            return
+        }
+        val sellAmount = BigDecimal(uiEvent.sellAmount)
+        if (sellAmount == BigDecimal.ZERO) {
+            return
+        }
+
+        if (!hasEnoughFunds(sellCurrency, sellAmount)) {
+            _uiState.update {
+                it.copy(
+                    message = "Not enough funds on balance",
+                )
+            }
+            return
+        }
+
+        val transactionResult = exchangeUseCase(
+            uiState.value.exchangeRates,
+            uiState.value.balance,
+            ExchangeTransaction(
+                sellCurrency = sellCurrency,
+                buyCurrency = buyCurrency,
+                amount = sellAmount,
+            )
+        )
+        if (transactionResult.isProcessed) {
+            _uiState.update {
+                val newBalance = getNewBalance(
+                    it.balance,
+                    transactionResult,
+                )
+                it.copy(
+                    balance = newBalance,
+                    availableCurrencies = newBalance.map { it.currency },
+                    message = null,
+                    receiveAmount = "0.00",
+                    transactionResult = transactionResult,
+                )
+            }
+            _actions.tryEmit(Action.ClearInputField)
+        } else {
+            _uiState.update {
+                it.copy(
+                    message = "Not enough funds on balance to pay " +
+                            "${transactionResult.transactionFee} " +
+                            "${transactionResult.transaction.sellCurrency} fee",
+                )
             }
         }
     }
