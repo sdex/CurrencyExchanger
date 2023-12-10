@@ -7,6 +7,7 @@ import dev.sdex.currencyexchanger.domain.model.ExchangeTransaction
 import dev.sdex.currencyexchanger.domain.model.ExchangeTransactionResult
 import dev.sdex.currencyexchanger.domain.provider.ExchangeRulesProvider
 import java.math.BigDecimal
+import java.math.MathContext
 
 class ExchangeUseCase(
     private val exchangeRulesProvider: ExchangeRulesProvider,
@@ -23,7 +24,7 @@ class ExchangeUseCase(
             sellCurrency = transaction.sellCurrency,
             buyCurrency = transaction.buyCurrency,
         )
-        val buyAmount = transaction.amount * rate
+        val buyAmount = transaction.amount.multiply(rate, MathContext.DECIMAL128)
         val transactionFee = getTransactionFee(transaction)
         val sellCurrencyBalance = balance.first { it.currency == transaction.sellCurrency }
         if (transaction.amount + transactionFee > sellCurrencyBalance.amount) {

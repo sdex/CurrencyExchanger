@@ -71,7 +71,7 @@ class MainViewModel(
                 balance = listOf(
                     Balance(
                         currency = BASE_CURRENCY,
-                        amount = BigDecimal(1000.0),
+                        amount = BigDecimal("1000"),
                     )
                 ),
                 availableCurrencies = listOf(BASE_CURRENCY),

@@ -9,7 +9,7 @@ import java.math.BigDecimal
  */
 class BaseExchangeFeeRule : ExchangeFeeRule {
 
-    private val fee = BigDecimal(0.007)
+    private val fee = BigDecimal("0.007")
 
     override fun process(
         transaction: ExchangeTransaction
