@@ -13,6 +13,6 @@ class GetExchangeRateUseCase {
     ): BigDecimal {
         val sellRate = exchangeRates.first { it.currency == sellCurrency }.rate
         val buyRate = exchangeRates.first { it.currency == buyCurrency }.rate
-        return buyRate.divide(sellRate, MathContext.DECIMAL128)
+        return buyRate.divide(sellRate, MathContext.DECIMAL64)
     }
 }

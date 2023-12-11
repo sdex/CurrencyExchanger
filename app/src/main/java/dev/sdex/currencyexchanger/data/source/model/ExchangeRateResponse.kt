@@ -17,7 +17,7 @@ data class ExchangeRateResponse(
         return rates?.map {
             ExchangeRate(
                 currency = it.key,
-                rate = BigDecimal(it.value),
+                rate = BigDecimal.valueOf(it.value),
             )
         } ?: emptyList()
     }

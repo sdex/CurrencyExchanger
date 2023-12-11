@@ -24,7 +24,7 @@ class ExchangeUseCase(
             sellCurrency = transaction.sellCurrency,
             buyCurrency = transaction.buyCurrency,
         )
-        val buyAmount = transaction.amount.multiply(rate, MathContext.DECIMAL128)
+        val buyAmount = transaction.amount.multiply(rate, MathContext.DECIMAL64)
         val transactionFee = getTransactionFee(transaction)
         val sellCurrencyBalance = balance.first { it.currency == transaction.sellCurrency }
         if (transaction.amount + transactionFee > sellCurrencyBalance.amount) {
