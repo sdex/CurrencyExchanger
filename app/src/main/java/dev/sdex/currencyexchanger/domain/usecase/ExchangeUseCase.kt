@@ -27,7 +27,8 @@ class ExchangeUseCase(
         val buyAmount = transaction.amount.multiply(rate, MathContext.DECIMAL64)
         val transactionFee = getTransactionFee(transaction)
         val sellCurrencyBalance = balance.first { it.currency == transaction.sellCurrency }
-        if (transaction.amount + transactionFee > sellCurrencyBalance.amount) {
+        val sellBalanceChange = transaction.amount + transactionFee
+        if (sellBalanceChange > sellCurrencyBalance.amount) {
             return ExchangeTransactionResult(
                 transaction = transaction,
                 transactionFee = transactionFee,
@@ -46,7 +47,7 @@ class ExchangeUseCase(
             isProcessed = true,
             change = BalanceChange(
                 transaction.sellCurrency,
-                -(transaction.amount + transactionFee),
+                -sellBalanceChange,
                 transaction.buyCurrency,
                 buyAmount,
             )
@@ -55,9 +56,9 @@ class ExchangeUseCase(
 
     private fun getTransactionFee(transaction: ExchangeTransaction): BigDecimal {
         for (rule in exchangeRulesProvider.rules) {
-            val fee = rule.process(transaction)
-            if (fee != BigDecimal.ZERO) {
-                return fee
+            val result = rule.process(transaction)
+            if (result.fee != null) {
+                return result.fee
             }
         }
         return BigDecimal.ZERO

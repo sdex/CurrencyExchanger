@@ -6,6 +6,7 @@ import dev.sdex.currencyexchanger.domain.repository.CurrencyExchangeRepository
 import dev.sdex.currencyexchanger.domain.usecase.ExchangeUseCase
 import dev.sdex.currencyexchanger.domain.usecase.GetExchangeRateUseCase
 import dev.sdex.currencyexchanger.domain.usecase.GetExchangeRatesUseCase
+import dev.sdex.currencyexchanger.domain.usecase.UpdateBalanceUseCase
 import dev.sdex.currencyexchanger.ui.MainViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -16,6 +17,7 @@ val appModule = module {
             getExchangeRatesUseCase = get(),
             exchangeUseCase = get(),
             getExchangeRateUseCase = get(),
+            updateBalanceUseCase = get(),
         )
     }
 }
@@ -33,4 +35,5 @@ val exchangeUseCaseModule = module {
         )
     }
     single { GetExchangeRateUseCase() }
+    single { UpdateBalanceUseCase() }
 }

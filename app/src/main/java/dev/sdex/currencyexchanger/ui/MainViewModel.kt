@@ -9,6 +9,7 @@ import dev.sdex.currencyexchanger.domain.model.ExchangeTransactionResult
 import dev.sdex.currencyexchanger.domain.usecase.ExchangeUseCase
 import dev.sdex.currencyexchanger.domain.usecase.GetExchangeRateUseCase
 import dev.sdex.currencyexchanger.domain.usecase.GetExchangeRatesUseCase
+import dev.sdex.currencyexchanger.domain.usecase.UpdateBalanceUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -57,6 +58,7 @@ class MainViewModel(
     private val getExchangeRatesUseCase: GetExchangeRatesUseCase,
     private val exchangeUseCase: ExchangeUseCase,
     private val getExchangeRateUseCase: GetExchangeRateUseCase,
+    private val updateBalanceUseCase: UpdateBalanceUseCase,
 ) : ViewModel() {
 
     private var _uiState = MutableStateFlow(ExchangeCurrencyState())
@@ -192,7 +194,7 @@ class MainViewModel(
         )
         if (transactionResult.isProcessed) {
             _uiState.update {
-                val newBalance = getNewBalance(
+                val newBalance = updateBalanceUseCase(
                     it.balance,
                     transactionResult,
                 )
@@ -220,44 +222,5 @@ class MainViewModel(
         val sellCurrencyBalance =
             uiState.value.balance.first { it.currency == sellCurrency }
         return sellAmount <= sellCurrencyBalance.amount
-    }
-
-    private fun getNewBalance(
-        balance: List<Balance>,
-        transactionResult: ExchangeTransactionResult,
-    ): List<Balance> {
-        val balanceChange = transactionResult.change
-        return if (balance.firstOrNull { it.currency == balanceChange.buyCurrency } == null) {
-            balance.map {
-                when (it.currency) {
-                    balanceChange.sellCurrency -> {
-                        it.copy(amount = it.amount + balanceChange.sellBalanceChange)
-                    }
-
-                    else -> {
-                        it
-                    }
-                }
-            } + Balance(
-                currency = balanceChange.buyCurrency,
-                amount = balanceChange.buyBalanceChange,
-            )
-        } else {
-            balance.map {
-                when (it.currency) {
-                    balanceChange.buyCurrency -> {
-                        it.copy(amount = it.amount + balanceChange.buyBalanceChange)
-                    }
-
-                    balanceChange.sellCurrency -> {
-                        it.copy(amount = it.amount + balanceChange.sellBalanceChange)
-                    }
-
-                    else -> {
-                        it
-                    }
-                }
-            }
-        }
     }
 }
