@@ -12,7 +12,7 @@ This demo app is written using the following:
 - Koin
 
 # Screenshots:
-----------
+
 <div style="display:flex;">
     <img
         src="https://raw.githubusercontent.com/sdex/CurrencyExchanger/main/screenshots/1.png"
