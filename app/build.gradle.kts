@@ -74,7 +74,7 @@ dependencies {
     implementation("com.jakewharton.timber:timber:5.0.1")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.2")
-    testImplementation("org.mockito:mockito-core:3.4.6")
+    testImplementation("org.mockito:mockito-core:5.8.0")
     testImplementation("android.arch.core:core-testing:1.1.1")
     testImplementation("com.google.truth:truth:1.1.3")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
