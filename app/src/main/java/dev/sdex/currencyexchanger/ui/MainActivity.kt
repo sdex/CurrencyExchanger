@@ -57,13 +57,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.sdex.currencyexchanger.R
+import dev.sdex.currencyexchanger.domain.model.Balance
+import dev.sdex.currencyexchanger.domain.model.ExchangeRate
 import dev.sdex.currencyexchanger.ui.theme.CurrencyExchangerTheme
 import dev.sdex.currencyexchanger.ui.theme.Green
 import dev.sdex.currencyexchanger.ui.theme.Red
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.KoinContext
+import java.math.BigDecimal
 
 class MainActivity : ComponentActivity() {
 
@@ -79,7 +84,13 @@ class MainActivity : ComponentActivity() {
                             .safeDrawingPadding(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        MainContent()
+                        val viewModel = koinViewModel<MainViewModel>()
+                        val state by viewModel.uiState.collectAsStateWithLifecycle()
+                        MainContent(
+                            state,
+                            viewModel::onEvent,
+                            viewModel.actions,
+                        )
                     }
                 }
             }
@@ -93,28 +104,30 @@ fun MainContentPreview() {
     CurrencyExchangerTheme(
         darkTheme = false,
     ) {
-        /*MainContent(
+        MainContent(
             state = ExchangeCurrencyState(
                 balance = listOf(
-                    Balance(currency = "EUR", amount = 1000.0),
-                    Balance(currency = "USD", amount = 50.0),
+                    Balance(currency = "EUR", amount = BigDecimal.valueOf(1000.0)),
+                    Balance(currency = "USD", amount = BigDecimal.valueOf(50.0)),
                 ),
                 exchangeRates = listOf(
-                    ExchangeRate(currency = "EUR", rate = 1.0),
-                    ExchangeRate(currency = "USD", rate = 1.1),
+                    ExchangeRate(currency = "EUR", rate = BigDecimal.valueOf(1.0)),
+                    ExchangeRate(currency = "USD", rate = BigDecimal.valueOf(1.1)),
                 ),
                 message = "Test message",
             ),
             onEvent = {},
-        )*/
+            actions = MutableSharedFlow(),
+        )
     }
 }
 
 @Composable
 fun MainContent(
-    viewModel: MainViewModel = koinViewModel(),
-) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    state: ExchangeCurrencyState,
+    onEvent: (UIEvent) -> Unit,
+    actions: SharedFlow<Action>,
+    ) {
     var sellCurrency by rememberSaveable(state.availableCurrencies) {
         mutableStateOf(state.availableCurrencies.firstOrNull() ?: "")
     }
@@ -122,9 +135,8 @@ fun MainContent(
     var receiveCurrency by rememberSaveable(state.allCurrencies) {
         mutableStateOf(state.allCurrencies.firstOrNull() ?: "")
     }
-    val onEvent = viewModel::onEvent
     LaunchedEffect(Unit) {
-        viewModel.actions.onEach {
+        actions.onEach {
             when (it) {
                 is Action.ClearInputField -> {
                     sellAmount = ""
