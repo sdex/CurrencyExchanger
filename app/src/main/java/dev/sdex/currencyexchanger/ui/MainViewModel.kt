@@ -1,5 +1,6 @@
 package dev.sdex.currencyexchanger.ui
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.sdex.currencyexchanger.domain.model.Balance
@@ -24,6 +25,7 @@ import java.math.BigDecimal
 
 private const val BASE_CURRENCY = "EUR"
 
+@Immutable
 data class ExchangeCurrencyState(
     val balance: List<Balance> = emptyList(),
     val availableCurrencies: List<String> = emptyList(),
@@ -84,7 +86,8 @@ class MainViewModel(
                 it.copy(
                     exchangeRates = result.data?.rates ?: emptyList(),
                     allCurrencies = it.allCurrencies.ifEmpty {
-                        result.data?.rates?.sortedBy { it.currency }?.map { it.currency }
+                        result.data?.rates?.sortedBy { exchangeRate -> exchangeRate.currency }
+                            ?.map { exchangeRate -> exchangeRate.currency }
                             ?: emptyList()
                     },
                 )
